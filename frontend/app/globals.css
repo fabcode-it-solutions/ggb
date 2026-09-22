@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Container Settings */
+  --container-padding: 2rem;
+  --container-center: true;
+  --container-2xl: 1400px;
+
+  /* Color Variables */
+  --color-border: #f2f2f2;
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+
+  /* Primary Colors */
+  --color-primary: #000000;
+  --color-primary-foreground: #ffffff;
+
+  /* Secondary Colors */
+  --color-secondary: #f2f2f2;
+  --color-secondary-foreground: #000000;
+
+  /* Muted Colors */
+  --color-muted: #f9f9f9;
+  --color-muted-foreground: #666666;
+
+  /* Accent Colors */
+  --color-accent: #f2f2f2;
+  --color-accent-foreground: #000000;
+
+  /* Border Radius */
+  --radius: 0px;
+  --radius-none: 0px;
+}
+
+/* Alternative: CSS Custom Properties in :root */
+:root {
+  /* Container */
+  --container-padding: 2rem;
+  --container-max-width: 1400px;
+
+  /* Colors */
+  --border: #f2f2f2;
+  --background: #ffffff;
+  --foreground: #000000;
+
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f2f2f2;
+  --secondary-foreground: #000000;
+
+  --muted: #f9f9f9;
+  --muted-foreground: #666666;
+
+  --accent: #f2f2f2;
+  --accent-foreground: #000000;
+
+  /* Border Radius */
+  --radius: 0px;
+}
+
+button {
+  cursor: pointer;
+}
+
+body {
+}

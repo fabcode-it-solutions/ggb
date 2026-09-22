@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model User {
+  id              String         @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String         @unique
+  password        String
+  otpToken        String?
+  otpExpiry       DateTime?
+  resetToken      String?
+  resetExpiry     DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  loginSessions   LoginSession[]
+  logs            Log[]
+  updatedProducts Product[]      @relation("ProductUpdater")
+  userRoles       UserRole[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  type        RoleType
+  name        String     @unique
+  description String?
+  permissions Json
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model LoginSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("login_sessions")
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      LogType
+  action    String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("logs")
+}
+
+model WebhookTrigger {
+  id            String        @id @default(cuid())
+  orderId       String
+  status        WebhookStatus @default(NOT_UPDATED)
+  attempts      Int           @default(0)
+  lastAttemptAt DateTime?
+  responseData  Json?
+  errorMessage  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@map("webhook_triggers")
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  inventoryType    InventoryType
+  productType      ProductType
+  sku              String        
+  inventoryCount   Int           @default(0)
+  wipCount         Int           @default(0)
+  buildCount       Int           @default(0)  
+  shopifyProductId String?
+  shopifyOrderId   String?
+  updatedBy        String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  ggbNumber        Int?
+  dealerNumber     Int?
+  updater          User?         @relation("ProductUpdater", fields: [updatedBy], references: [id])
+
+  @@index([sku])
+  @@index([inventoryType])
+  @@index([shopifyProductId])
+  @@map("products")
+}
+
+enum RoleType {
+  ADMIN
+  WAREHOUSE
+}
+
+enum WebhookStatus {
+  NOT_UPDATED
+  UPDATED
+}
+
+enum InventoryType {
+  SNOW
+  SXS
+  APPAREL
+}
+
+enum ProductType {
+  OBSOLETE
+  QUIET
+  TRAIL
+  MOUNTAIN
+  APPAREL
+  SXS_QUIET
+  SXS_TIPS
+  SXS_SPORT_PRO
+  SXS_DUAL
+  SXS_OTHER
+  SXS_SPORT
+  SXS_TRAIL
+}
+
+enum LogType {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  ERROR
+}
+// Place it after the Product model, before the enums section.
+
+model Order {
+  id               String   @id @default(cuid())
+  orderNo          String                         // Shopify metafield order number
+  sku              String                         // Primary SKU (from lineItems[0])
+  quantity         Int                            // Primary qty (from lineItems[0])
+  lineItems        Json     @default("[]")        // [{sku, quantity, price, ggbNumber, dealerNumber, wipCount, buildCount}]
+  customerName     String
+  customerEmail    String
+  shippingAddress  Json                           // ShippingAddress object (see types)
+  orderTags        String[]                       // PostgreSQL native array
+  shopifyOrderId   String?                        // Shopify order GID
+  shopifyOrderName String?                        // Human-readable e.g. "#1002"
+  shopifySyncError String?                        // null = synced OK; order not released if also shopifyOrderId=null
+  notes            String?
+  currency         String       @default("USD")        // "USD" or "CAD"
+  status           OrderStatus  @default(PENDING)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([orderNo])
+  @@index([sku])
+  @@index([customerEmail])
+  @@index([status])
+  @@map("orders")
+}
+// ─── ADD THIS ENUM alongside the other enums ──────────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  FULFILLED
+  CANCELLED
+}
